@@ -2,11 +2,6 @@ package com.andres.wherearemyuser.dataobjects;
 
 /**
  * Created by andresdavid on 16/09/16.
- *
- * "street": "Kulas Light",
- "suite": "Apt. 556",
- "city": "Gwenborough",
- "zipcode": "92998-3874",
  */
 public class Address {
 
