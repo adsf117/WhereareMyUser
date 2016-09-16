@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">WhereAreMyUser?</string>
+    <string name="the_closest_user">The Closest User</string>
+    <string name="the_furthest_user">The Furthest User</string>
+    <string name="showing_a_random_user">Showing a random user</string>
+    <string name="datails_the_closest_user">The Closest User is %s</string>
+    <string name="details_the_furthest_user">The Furthest User is %s</string>
+
 </resources>
