@@ -20,7 +20,6 @@ import retrofit2.Response;
 public class MapActivity extends AppCompatActivity {
 
     private  final String LOG_TAG = MapActivity.class.toString();
-    private View mView=null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
