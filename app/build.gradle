@@ -1,5 +1,5 @@
 apply plugin: 'com.android.application'
-
+apply plugin: 'realm-android'
 android {
     compileSdkVersion 24
     buildToolsVersion "24.0.2"
@@ -33,6 +33,5 @@ dependencies {
     //REST HTTP CLIENTE
     compile 'com.squareup.retrofit2:retrofit:2.1.0'
     compile 'com.squareup.retrofit2:converter-gson:2.1.0'
-    //Android Permissions
-    compile 'pub.devrel:easypermissions:0.1.9'
+
 }

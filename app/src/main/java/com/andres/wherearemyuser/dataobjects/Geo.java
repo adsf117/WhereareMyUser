@@ -1,9 +1,11 @@
 package com.andres.wherearemyuser.dataobjects;
 
+import io.realm.RealmObject;
+
 /**
  * Created by andresdavid on 16/09/16.
  */
-public class Geo {
+public class Geo extends RealmObject {
 
     private double lat;
     private double lng;
