@@ -1,10 +1,13 @@
 package com.andres.wherearemyuser.ui;
 
 import android.Manifest;
-import android.location.Location;
+import android.app.Activity;
+import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -15,7 +18,9 @@ import android.widget.Toast;
 import com.andres.wherearemyuser.LocationManager;
 import com.andres.wherearemyuser.R;
 import com.andres.wherearemyuser.Utils;
+import com.andres.wherearemyuser.database.DAOUser;
 import com.andres.wherearemyuser.dataobjects.User;
+import com.andres.wherearemyuser.usermap.UserMap;
 import com.andres.wherearemyuser.webservices.GetUser;
 import com.andres.wherearemyuser.webservices.ServiceCreator;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -26,12 +31,12 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.scottyab.rootbeer.RootBeer;
 
 import java.util.List;
 
 import io.github.yavski.fabspeeddial.FabSpeedDial;
 import io.github.yavski.fabspeeddial.SimpleMenuListenerAdapter;
-import pub.devrel.easypermissions.EasyPermissions;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -42,21 +47,36 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     GoogleMap m_map;
     boolean mapReady = false;
     private List<User> mUserList = null;
-    private static final String[] PERMISSIONS = {
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_FINE_LOCATION
-    };
     private int ACCESS_FINE_LOCATION = 23;
-    private  int DEFAUL_MAP_TILT=45;
-    private  int DEFAUL_MAP_ZOOM=3;
+    private int DEFAUL_MAP_TILT = 45;
+    private int DEFAUL_MAP_ZOOM = 3;
+    private Activity mActivity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
+        mActivity =this;
+        RootBeer rootBeer = new RootBeer(this);
+        if(rootBeer.isRooted()){
+            Toast.makeText(this, R.string.error_root_device, Toast.LENGTH_SHORT).show();
+
+        }else{
+
+            init();
+        }
+    }
+
+    private void init() {
+        mUserList = DAOUser.getAllUser(this);
+        if (Utils.isReadStorageAllowed(this)) {
+            LocationManager.getInstance(this).init();
+        } else {
+            requestStoragePermission();
+        }
         MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        retrieveLocation();
+
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -71,58 +91,23 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             @Override
             public boolean onMenuItemSelected(MenuItem menuItem) {
                 //TODO: Start some activity
-                User resulUser = null;
-                if (menuItem.getTitle().equals(getString(R.string.the_closest_user))) {
+                if (Utils.isReadStorageAllowed(mActivity)) {
+                    User resulUser = null;
+                    if (menuItem.getTitle().equals(getString(R.string.the_closest_user))) {
 
-                    resulUser = getClosestUser();
-                } else if (menuItem.getTitle().equals(getString(R.string.the_furthest_user))) {
+                        resulUser = UserMap.getClosestUser(mUserList,mActivity);
+                    } else if (menuItem.getTitle().equals(getString(R.string.the_furthest_user))) {
 
-                    resulUser = getFurthestUser();
+                        resulUser = UserMap.getFurthestUser(mUserList,mActivity);
+                    }
+
+                    if (resulUser != null)
+                        createMarker(resulUser);
                 }
-
-                if (resulUser != null)
-                    createMarker(resulUser);
                 return false;
             }
         });
-    }
 
-    public User getFurthestUser() {
-
-        Location myLocation = new Utils().getMylastlocation(this);
-        LatLng myLocationLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
-        User farthestUser = null;
-        float distance = 0;
-
-        for (User user : mUserList) {
-            LatLng latLng = new LatLng(user.getAddress().getGeo().getLat(), user.getAddress().getGeo().getLng());
-            float userDistance = Utils.getDistanceBetweenLocations(myLocationLatLng, latLng);
-            if (userDistance > distance) {
-                distance = userDistance;
-                farthestUser = user;
-            }
-        }
-
-        return farthestUser;
-    }
-
-    public User getClosestUser() {
-
-        Location myLocation = new Utils().getMylastlocation(this);
-        LatLng myLocationLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
-        User nearestUser = null;
-        float distance = Float.MAX_VALUE;
-        ;
-        for (User user : mUserList) {
-            LatLng latLng = new LatLng(user.getAddress().getGeo().getLat(), user.getAddress().getGeo().getLng());
-            float userDistance = Utils.getDistanceBetweenLocations(myLocationLatLng, latLng);
-            if (userDistance < distance) {
-                distance = userDistance;
-                nearestUser = user;
-            }
-        }
-
-        return nearestUser;
     }
 
     public void getUsersFromServer() {
@@ -133,6 +118,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             public void onResponse(Call<List<User>> call, Response<List<User>> response) {
                 if (response.isSuccessful()) {
                     mUserList = response.body();
+                    DAOUser.saveUsers(mUserList,mActivity);
                     ramdomUser();
                 } else {
                     Log.e(LOG_TAG, "onUsersFail" + response.toString());
@@ -147,7 +133,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     public void onNetworkError() {
-        Toast.makeText(this, "No internet connection. Please check you internet conecction", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.error_connection_issues, Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -181,20 +167,31 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     }
 
-    private void retrieveLocation() {
+    private void requestStoragePermission() {
 
-        if (EasyPermissions.hasPermissions(this, PERMISSIONS)) {
-            LocationManager.getInstance(this).init();
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
 
-        } else {
-            EasyPermissions.requestPermissions(this, "Permisos requeridos", ACCESS_FINE_LOCATION, PERMISSIONS);
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION)) {
+            } else {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        ACCESS_FINE_LOCATION);
+            }
         }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
-    }
 
+        if (requestCode == ACCESS_FINE_LOCATION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                LocationManager.getInstance(this).init();
+
+            } else {
+                Toast.makeText(this, R.string.error_no_accepted_permission, Toast.LENGTH_LONG).show();
+            }
+        }
+    }
 }

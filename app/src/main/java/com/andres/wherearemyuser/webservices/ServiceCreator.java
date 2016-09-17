@@ -1,5 +1,7 @@
 package com.andres.wherearemyuser.webservices;
 
+import com.andres.wherearemyuser.BuildConfig;
+
 import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -13,7 +15,7 @@ public class ServiceCreator {
 
     private static Retrofit.Builder builder =
             new Retrofit.Builder()
-                    .baseUrl("http://jsonplaceholder.typicode.com/")
+                    .baseUrl(BuildConfig.BASE_URL)
                     .addConverterFactory(GsonConverterFactory.create());
 
     public static <S> S createService(Class<S> serviceClass) {

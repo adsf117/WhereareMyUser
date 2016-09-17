@@ -1,9 +1,12 @@
 package com.andres.wherearemyuser;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.location.Location;
+import android.support.v4.content.ContextCompat;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.Gson;
@@ -28,11 +31,7 @@ public class Utils {
         lastindex=index;
         return index;
     }
-    public static float getDistanceBetweenLocations(LatLng locationOne, LatLng locationTwo) {
-        float [] results = new float[1];
-        Location.distanceBetween(locationOne.latitude,locationOne.longitude,locationTwo.latitude,locationTwo.longitude,results);
-        return results[0];
-    }
+
     public void saveMylastlocation(Activity activity,Location location)
     {
         SharedPreferences sharedPref = activity.getPreferences(Context.MODE_PRIVATE);
@@ -47,5 +46,12 @@ public class Utils {
         String location = sharedPref.getString(MY_LOCATION, "");
         return new Gson().fromJson(location, Location.class);
 
+    }
+    public static boolean isReadStorageAllowed(Context context) {
+        int result = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION);
+
+        if (result == PackageManager.PERMISSION_GRANTED)
+            return true;
+        return false;
     }
 }

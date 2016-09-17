@@ -5,5 +5,8 @@
     <string name="showing_a_random_user">Showing a random user</string>
     <string name="datails_the_closest_user">The Closest User is %s</string>
     <string name="details_the_furthest_user">The Furthest User is %s</string>
+    <string name="error_root_device">Sorry the device you are using is not authorised for use with Where are my user</string>
+    <string name="error_connection_issues">No internet connection. Please check you internet conecction</string>
+    <string name="error_no_accepted_permission">Oops you just denied the permission</string>
 
 </resources>
