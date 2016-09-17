@@ -1,5 +1,10 @@
 package com.andres.wherearemyuser.dataobjects;
 
+import com.andres.wherearemyuser.database.RealmManager;
+
+import java.util.List;
+
+import io.realm.Realm;
 import io.realm.RealmObject;
 import io.realm.annotations.PrimaryKey;
 
@@ -85,4 +90,6 @@ public class User extends RealmObject {
     public void setId(long id) {
         this.id = id;
     }
+
+
 }

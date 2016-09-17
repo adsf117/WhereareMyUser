@@ -6,15 +6,19 @@ android {
 
     defaultConfig {
         applicationId "com.andres.wherearemyuser"
-        minSdkVersion 18
+        minSdkVersion 15
         targetSdkVersion 24
         versionCode 1
         versionName "1.0"
     }
     buildTypes {
+        debug {
+            buildConfigField "String", "BASE_URL", '"http://jsonplaceholder.typicode.com/"'
+        }
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "BASE_URL", '"http://jsonplaceholder.typicode.com/"'
         }
     }
 }
@@ -33,5 +37,8 @@ dependencies {
     //REST HTTP CLIENTE
     compile 'com.squareup.retrofit2:retrofit:2.1.0'
     compile 'com.squareup.retrofit2:converter-gson:2.1.0'
+    //Security
+    compile 'com.scottyab:rootbeer-lib:0.0.4'
+
 
 }

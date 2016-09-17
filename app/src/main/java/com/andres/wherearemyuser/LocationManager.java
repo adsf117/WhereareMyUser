@@ -116,7 +116,7 @@ public class LocationManager implements GoogleApiClient.ConnectionCallbacks, Goo
         return mGoogleApiClient != null && mGoogleApiClient.isConnected();
     }
 
-    private void disconnectGoogleApiClient() {
+    public void disconnectGoogleApiClient() {
         if (isConnected()) {
             mGoogleApiClient.disconnect();
         }
