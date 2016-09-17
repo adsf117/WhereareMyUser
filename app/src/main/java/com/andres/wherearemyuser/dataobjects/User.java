@@ -1,10 +1,15 @@
 package com.andres.wherearemyuser.dataobjects;
 
+import io.realm.RealmObject;
+import io.realm.annotations.PrimaryKey;
+
 /**
  * Created by andresdavid on 16/09/16.
  */
-public class User {
+public class User extends RealmObject {
 
+    @PrimaryKey
+    private long id;
     private String name;
     private String username;
     private String email;
@@ -13,6 +18,16 @@ public class User {
     private Address address;
 
     public User() {
+    }
+
+    public User(long id, String name, String username, String email, String phone, String website, Address address) {
+        this.id = id;
+        this.name = name;
+        this.username = username;
+        this.email = email;
+        this.phone = phone;
+        this.website = website;
+        this.address = address;
     }
 
     public String getName() {
@@ -61,5 +76,13 @@ public class User {
 
     public void setAddress(Address address) {
         this.address = address;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 }

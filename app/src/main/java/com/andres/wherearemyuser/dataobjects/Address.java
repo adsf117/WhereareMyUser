@@ -1,9 +1,11 @@
 package com.andres.wherearemyuser.dataobjects;
 
+import io.realm.RealmObject;
+
 /**
  * Created by andresdavid on 16/09/16.
  */
-public class Address {
+public class Address extends RealmObject {
 
     private String street;
     private String suite;

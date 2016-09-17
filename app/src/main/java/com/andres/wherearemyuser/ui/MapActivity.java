@@ -1,10 +1,13 @@
 package com.andres.wherearemyuser.ui;
 
 import android.Manifest;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -15,6 +18,7 @@ import android.widget.Toast;
 import com.andres.wherearemyuser.LocationManager;
 import com.andres.wherearemyuser.R;
 import com.andres.wherearemyuser.Utils;
+import com.andres.wherearemyuser.database.RealmManager;
 import com.andres.wherearemyuser.dataobjects.User;
 import com.andres.wherearemyuser.webservices.GetUser;
 import com.andres.wherearemyuser.webservices.ServiceCreator;
@@ -31,7 +35,7 @@ import java.util.List;
 
 import io.github.yavski.fabspeeddial.FabSpeedDial;
 import io.github.yavski.fabspeeddial.SimpleMenuListenerAdapter;
-import pub.devrel.easypermissions.EasyPermissions;
+import io.realm.Realm;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -47,16 +51,22 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             Manifest.permission.ACCESS_FINE_LOCATION
     };
     private int ACCESS_FINE_LOCATION = 23;
-    private  int DEFAUL_MAP_TILT=45;
-    private  int DEFAUL_MAP_ZOOM=3;
+    private int DEFAUL_MAP_TILT = 45;
+    private int DEFAUL_MAP_ZOOM = 3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
+        mUserList = RealmManager.getInstance(getApplicationContext()).getRealm().where(User.class).findAll();
+        if (isReadStorageAllowed()) {
+            LocationManager.getInstance(this).init();
+        } else {
+            requestStoragePermission();
+        }
         MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        retrieveLocation();
+
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -71,20 +81,33 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             @Override
             public boolean onMenuItemSelected(MenuItem menuItem) {
                 //TODO: Start some activity
-                User resulUser = null;
-                if (menuItem.getTitle().equals(getString(R.string.the_closest_user))) {
+                if (isReadStorageAllowed()) {
+                    User resulUser = null;
+                    if (menuItem.getTitle().equals(getString(R.string.the_closest_user))) {
 
-                    resulUser = getClosestUser();
-                } else if (menuItem.getTitle().equals(getString(R.string.the_furthest_user))) {
+                        resulUser = getClosestUser();
+                    } else if (menuItem.getTitle().equals(getString(R.string.the_furthest_user))) {
 
-                    resulUser = getFurthestUser();
+                        resulUser = getFurthestUser();
+                    }
+
+                    if (resulUser != null)
+                        createMarker(resulUser);
                 }
-
-                if (resulUser != null)
-                    createMarker(resulUser);
                 return false;
             }
         });
+    }
+
+    public void saveUsers(final List<User> userList) {
+        RealmManager.getInstance(getApplicationContext()).getRealm().executeTransactionAsync(
+                new Realm.Transaction() {
+                    @Override
+                    public void execute(Realm realm) {
+                        realm.insertOrUpdate(userList);
+                    }
+                }
+        );
     }
 
     public User getFurthestUser() {
@@ -133,8 +156,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             public void onResponse(Call<List<User>> call, Response<List<User>> response) {
                 if (response.isSuccessful()) {
                     mUserList = response.body();
+                    saveUsers(mUserList);
                     ramdomUser();
                 } else {
+
                     Log.e(LOG_TAG, "onUsersFail" + response.toString());
                 }
             }
@@ -181,20 +206,63 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     }
 
-    private void retrieveLocation() {
+    //Requesting permission
+    private void requestStoragePermission() {
+        // Here, thisActivity is the current activity
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
 
-        if (EasyPermissions.hasPermissions(this, PERMISSIONS)) {
-            LocationManager.getInstance(this).init();
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION)) {
 
-        } else {
-            EasyPermissions.requestPermissions(this, "Permisos requeridos", ACCESS_FINE_LOCATION, PERMISSIONS);
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        ACCESS_FINE_LOCATION);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
         }
     }
 
+    //This method will be called when the user will tap on allow or deny
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
+
+        //Checking the request code of our request
+        if (requestCode == ACCESS_FINE_LOCATION) {
+
+            //If permission is granted
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                //Displaying a toast
+                LocationManager.getInstance(this).init();
+
+            } else {
+                //Displaying another toast if permission is not granted
+                Toast.makeText(this, "Oops you just denied the permission", Toast.LENGTH_LONG).show();
+            }
+        }
     }
+
+    //We are calling this method to check the permission status
+    private boolean isReadStorageAllowed() {
+        //Getting the permission status
+        int result = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+
+        //If permission is granted returning true
+        if (result == PackageManager.PERMISSION_GRANTED)
+            return true;
+
+        //If permission is not granted returning false
+        return false;
+    }
+
 
 }
